@@ -133,9 +133,56 @@ void MyGLWidget::mouseMoveEvent(QMouseEvent *event)
 
 void drawLineFromZeroTo( double x, double y, double z)
 {
+
     glBegin(GL_LINES);
         glVertex3f(0,0,0);
         glVertex3f(x,y,z);
+    glEnd();
+}
+
+void drawOrth(double x, double y, double z)
+{
+    double norm = sqrt( x*x + y*y + z*z);
+    if (norm == 0) return;
+    double gamma = M_PI/2.;
+    if (x != 0) {
+       gamma = - atan( y/x);
+    }
+    //3-f vector is ( - z/norm * cos(gamma); - z / norm * sin(gamma); x/norm * sin(gamma) - y/norm * cos(gamma) )
+    double w = 0.01;
+    double h = 0.01;
+    glBegin(GL_TRIANGLE_STRIP);
+      glColor4s( 1., 0., 0., 1.);
+        glVertex3f(0 + sin(gamma)*w - h * ( -z/norm * cos(gamma)) ,  //1
+            0 + cos(gamma)*w - h * ( -z/norm * sin(gamma)),
+            0 + 0*w - h/norm*(x * cos(gamma) - y * sin(gamma)) );
+        glVertex3f(x + sin(gamma)*w - h * ( -z/norm * cos(gamma)) ,  //2
+            y + cos(gamma)*w - h * ( -z/norm * sin(gamma)),
+            z + 0*w - h/norm*(x * cos(gamma) - y * sin(gamma)) );
+        glVertex3f(0 + sin(gamma)*w + h * ( -z/norm * cos(gamma)) ,  //3
+            0 + cos(gamma)*w + h * ( -z/norm * sin(gamma)), 
+            0 + 0*w + h/norm*(x * cos(gamma) - y * sin(gamma)) );
+        glVertex3f(x + sin(gamma)*w + h * ( -z/norm * cos(gamma)) ,  //4
+            y + cos(gamma)*w + h * ( -z/norm * sin(gamma)),
+            z + 0*w + h/norm*(x * cos(gamma) - y * sin(gamma)) );
+        glVertex3f(0 - sin(gamma)*w + h * ( -z/norm * cos(gamma)) ,  //5
+            0 - cos(gamma)*w + h * ( -z/norm * sin(gamma)),
+            0 - 0*w + h/norm*(x * cos(gamma) - y * sin(gamma)) );
+        glVertex3f(x - sin(gamma)*w + h * ( -z/norm * cos(gamma)) ,  //6
+            y - cos(gamma)*w + h * ( -z/norm * sin(gamma)),
+            z - 0*w + h/norm*(x * cos(gamma) - y * sin(gamma)) );
+        glVertex3f(0 - sin(gamma)*w - h * ( -z/norm * cos(gamma)) ,  //7
+            0 - cos(gamma)*w - h * ( -z/norm * sin(gamma)),
+            0 - 0*w - h/norm*(x * cos(gamma) - y * sin(gamma)) );
+        glVertex3f(x - sin(gamma)*w - h * ( -z/norm * cos(gamma)) ,  //8
+            y - cos(gamma)*w - h * ( -z/norm * sin(gamma)),
+            z - 0*w - h/norm*(x * cos(gamma) - y * sin(gamma)) );
+        glVertex3f(0 + sin(gamma)*w - h * ( -z/norm * cos(gamma)) ,  //1
+            0 + cos(gamma)*w - h * ( -z/norm * sin(gamma)),
+            0 + 0*w - h/norm*(x * cos(gamma) - y * sin(gamma)) );
+        glVertex3f(x + sin(gamma)*w - h * ( -z/norm * cos(gamma)) ,  //2
+            y + cos(gamma)*w - h * ( -z/norm * sin(gamma)),
+            z + 0*w - h/norm*(x * cos(gamma) - y * sin(gamma)) );
     glEnd();
 }
 
@@ -178,9 +225,9 @@ void MyGLWidget::draw()
     glEnd();
   }
 
-    drawLineFromZeroTo(5, 0, 0);
-    drawLineFromZeroTo(0, 5, 0);
-    drawLineFromZeroTo(0, 0, 5);
+    drawOrth(5, 0, 0);
+    drawOrth(0, 5, 0);
+    drawOrth(0, 0, 5);
 
     for(auto &repCoord : reportedCoords)
     {

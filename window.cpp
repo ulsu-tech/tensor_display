@@ -58,8 +58,8 @@ void Window::updateThings()
     int y = sin(counter / 180. * M_PI) * l + 2048;
     int z = sin(2.* counter / 180. * M_PI) * l + 2048;
     shiftZero(x,y,z);
-    std::cout<<"emitting x="<<x<<"  y="<<y<<"  z="<<z<<std::endl;
+    //std::cout<<"emitting x="<<x<<"  y="<<y<<"  z="<<z<<std::endl;
     emit newData(x, y, z);
-    emit forceRedraw();   
+    emit forceRedraw();
     counter++;
 }
