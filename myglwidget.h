@@ -4,6 +4,11 @@
 #define MYGLWIDGET_H
 
 #include <QGLWidget>
+#include <vector>
+
+struct tensorVec {
+    int x, y, z;
+};
 
 class MyGLWidget : public QGLWidget
 {
@@ -25,11 +30,18 @@ protected:
     void mousePressEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
 
+    inline double scaleToSphere( int v, double rad = 3.) {
+        return rad / 2048. * v;
+    }
+
 public slots:
     // slots for xyz-rotation slider
     void setXRotation(int angle);
     void setYRotation(int angle);
     void setZRotation(int angle);
+    void redraw();
+    void appendNewVector(int x, int y, int z);
+    void switchPyramid(bool);
 
 signals:
     // signaling rotation from mouse movement
@@ -45,6 +57,8 @@ private:
     int zRot;
 
     QPoint lastPos;
+    std::vector<tensorVec> reportedCoords;
+    bool ShowPyramids = true;
 };
 
 #endif // MYGLWIDGET_H

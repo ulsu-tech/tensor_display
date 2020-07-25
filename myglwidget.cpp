@@ -5,12 +5,16 @@
 
 #include "myglwidget.h"
 
+#include <iostream>
+
 MyGLWidget::MyGLWidget(QWidget *parent)
     : QGLWidget(QGLFormat(QGL::SampleBuffers), parent)
 {
     xRot = 0;
+    xRot = -60;
     yRot = 0;
     zRot = 0;
+    zRot = -120;
 }
 
 MyGLWidget::~MyGLWidget()
@@ -30,9 +34,9 @@ QSize MyGLWidget::sizeHint() const
 static void qNormalizeAngle(int &angle)
 {
     while (angle < 0)
-        angle += 360 * 16;
+        angle += 360*16;
     while (angle > 360)
-        angle -= 360 * 16;
+        angle -= 360* 16;
 }
 
 void MyGLWidget::setXRotation(int angle)
@@ -67,7 +71,7 @@ void MyGLWidget::setZRotation(int angle)
 
 void MyGLWidget::initializeGL()
 {
-    qglClearColor(Qt::black);
+    qglClearColor(Qt::darkGreen);
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
@@ -75,7 +79,7 @@ void MyGLWidget::initializeGL()
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
 
-    static GLfloat lightPosition[4] = { 0, 0, 10, 1.0 };
+    static GLfloat lightPosition[4] = { 10, 10, 10, 1.0 };
     glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
 }
 
@@ -83,10 +87,10 @@ void MyGLWidget::paintGL()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
-    glTranslatef(0.0, 0.0, -10.0);
-    glRotatef(xRot / 16.0, 1.0, 0.0, 0.0);
-    glRotatef(yRot / 16.0, 0.0, 1.0, 0.0);
-    glRotatef(zRot / 16.0, 0.0, 0.0, 1.0);
+    glTranslatef(0.0, 0.0, -20.0);
+    glRotatef(xRot, 1.0, 0.0, 0.0);
+    glRotatef(yRot, 0.0, 1.0, 0.0);
+    glRotatef(zRot, 0.0, 0.0, 1.0);
     draw();
 }
 
@@ -100,7 +104,7 @@ void MyGLWidget::resizeGL(int width, int height)
 #ifdef QT_OPENGL_ES_1
     glOrthof(-2, +2, -2, +2, 1.0, 15.0);
 #else
-    glOrtho(-2, +2, -2, +2, 1.0, 15.0);
+    glOrtho(-3, +3, -3, +3, 1.0, 35.0);
 #endif
     glMatrixMode(GL_MODELVIEW);
 }
@@ -112,6 +116,7 @@ void MyGLWidget::mousePressEvent(QMouseEvent *event)
 
 void MyGLWidget::mouseMoveEvent(QMouseEvent *event)
 {
+    return;
     int dx = event->x() - lastPos.x();
     int dy = event->y() - lastPos.y();
 
@@ -126,9 +131,19 @@ void MyGLWidget::mouseMoveEvent(QMouseEvent *event)
     lastPos = event->pos();
 }
 
+void drawLineFromZeroTo( double x, double y, double z)
+{
+    glBegin(GL_LINES);
+        glVertex3f(0,0,0);
+        glVertex3f(x,y,z);
+    glEnd();
+}
+
 void MyGLWidget::draw()
 {
-    qglColor(Qt::red);
+    qglColor(Qt::darkRed);
+
+  if (ShowPyramids) {
     glBegin(GL_QUADS);
         glNormal3f(0,0,-1);
         glVertex3f(-1,-1,0);
@@ -161,4 +176,40 @@ void MyGLWidget::draw()
         glVertex3f(-1,-1,0);
         glVertex3f(0,0,1.2);
     glEnd();
+  }
+
+    drawLineFromZeroTo(5, 0, 0);
+    drawLineFromZeroTo(0, 5, 0);
+    drawLineFromZeroTo(0, 0, 5);
+
+    for(auto &repCoord : reportedCoords)
+    {
+        drawLineFromZeroTo(
+            scaleToSphere(repCoord.x),
+            scaleToSphere(repCoord.y),
+            scaleToSphere(repCoord.z));
+    }
+}
+
+void MyGLWidget::redraw()
+{
+  ///std::cout<<"redraw called"<<std::endl;
+    updateGL();
+}
+
+void MyGLWidget::appendNewVector(int x, int y, int z)
+{
+//    std::cout<<"on appendNewVector received x="<<x<<" y="<<y<<"  z="<<z<<std::endl;
+    reportedCoords.insert(reportedCoords.begin(), {x,y,z});
+    
+//    std::cout<<"after we have received x="<<reportedCoords.front().x<<
+//            " y="<<reportedCoords.front().y<<
+//            "  z="<<reportedCoords.front().z<<std::endl;
+    reportedCoords.resize(50);
+}
+
+void MyGLWidget::switchPyramid(bool nv)
+{
+    ShowPyramids = nv;
+  std::cout<<"ShowPyramids set to "<<ShowPyramids<<std::endl;
 }
