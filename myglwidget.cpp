@@ -104,7 +104,7 @@ void MyGLWidget::resizeGL(int width, int height)
 #ifdef QT_OPENGL_ES_1
     glOrthof(-2, +2, -2, +2, 1.0, 15.0);
 #else
-    glOrtho(-3, +3, -3, +3, 1.0, 35.0);
+    glOrtho(-5, +5, -5, +5, 1.0, 35.0);
 #endif
     glMatrixMode(GL_MODELVIEW);
 }
@@ -191,37 +191,22 @@ void MyGLWidget::draw()
     qglColor(Qt::darkRed);
 
   if (ShowPyramids) {
-    glBegin(GL_QUADS);
-        glNormal3f(0,0,-1);
-        glVertex3f(-1,-1,0);
-        glVertex3f(-1,1,0);
-        glVertex3f(1,1,0);
-        glVertex3f(1,-1,0);
-
-    glEnd();
-    glBegin(GL_TRIANGLES);
-        glNormal3f(0,-1,0.707);
-        glVertex3f(-1,-1,0);
-        glVertex3f(1,-1,0);
-        glVertex3f(0,0,1.2);
-    glEnd();
-    glBegin(GL_TRIANGLES);
-        glNormal3f(1,0, 0.707);
-        glVertex3f(1,-1,0);
-        glVertex3f(1,1,0);
-        glVertex3f(0,0,1.2);
-    glEnd();
-    glBegin(GL_TRIANGLES);
-        glNormal3f(0,1,0.707);
-        glVertex3f(1,1,0);
-        glVertex3f(-1,1,0);
-        glVertex3f(0,0,1.2);
-    glEnd();
-    glBegin(GL_TRIANGLES);
-        glNormal3f(-1,0,0.707);
-        glVertex3f(-1,1,0);
-        glVertex3f(-1,-1,0);
-        glVertex3f(0,0,1.2);
+    glBegin(GL_TRIANGLE_STRIP);
+        //glNormal3f(0,-1,0.707);
+        glNormal3f(0, -1, 0);
+        qglColor(Qt::red);
+        glVertex3f(0,0,0);
+        glVertex3f(1,0,0);
+        glVertex3f(0,0,3);
+        glNormal3f(0.577, 0.577, 0.577);
+        qglColor(Qt::darkRed);
+        glVertex3f(0,2,0);
+        glNormal3f(-1, 0, 0);
+        qglColor(Qt::blue);
+        glVertex3f(0,0,0);
+        glNormal3f(0, 0, -1);
+        qglColor(Qt::green);
+        glVertex3f(1,0,0);
     glEnd();
   }
 
