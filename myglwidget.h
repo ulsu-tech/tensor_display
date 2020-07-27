@@ -58,7 +58,7 @@ private:
 
     QPoint lastPos;
     std::vector<tensorVec> reportedCoords;
-    bool ShowPyramids = true;
+    bool ShowPyramids;
 };
 
 #endif // MYGLWIDGET_H

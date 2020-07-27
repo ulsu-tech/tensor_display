@@ -15,6 +15,8 @@ MyGLWidget::MyGLWidget(QWidget *parent)
     yRot = 0;
     zRot = 0;
     zRot = -120;
+
+    ShowPyramids = true;
 }
 
 MyGLWidget::~MyGLWidget()
@@ -237,7 +239,7 @@ void MyGLWidget::appendNewVector(int x, int y, int z)
 //    std::cout<<"after we have received x="<<reportedCoords.front().x<<
 //            " y="<<reportedCoords.front().y<<
 //            "  z="<<reportedCoords.front().z<<std::endl;
-    reportedCoords.resize(50);
+    reportedCoords.resize(5);
 }
 
 void MyGLWidget::switchPyramid(bool nv)

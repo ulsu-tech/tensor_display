@@ -7,6 +7,8 @@
 #include <QSlider>
 #include <QTimer>
 
+#include <QSerialPort>
+
 namespace Ui {
 class Window;
 }
@@ -33,6 +35,12 @@ private:
     Ui::Window *ui;
     QTimer *periodic_timer;
     int counter;
+
+    QSerialPort *serial;
+    char serialBuffer[2048];
+    int serialBuffFilled;
+    bool handleSerialPortInput(int &x, int &y, int &z);
+    void SHL(const int shift);
 };
 
 #endif // WINDOW_H
