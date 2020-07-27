@@ -216,6 +216,8 @@ void MyGLWidget::draw()
     drawOrth(0, 5, 0);
     drawOrth(0, 0, 5);
 
+    drawTexts();
+
     for(auto &repCoord : reportedCoords)
     {
         drawLineFromZeroTo(
@@ -247,3 +249,37 @@ void MyGLWidget::switchPyramid(bool nv)
     ShowPyramids = nv;
   std::cout<<"ShowPyramids set to "<<ShowPyramids<<std::endl;
 }
+
+void MyGLWidget::drawTexts()
+{
+    glBegin(GL_LINES);
+        glVertex3f( 5, 0, 0);
+        glVertex3f(4.5, 0, -0.5);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex3f(4.5, 0, 0);
+        glVertex3f(5, 0, -0.5);
+    glEnd();
+
+    glBegin(GL_LINES);
+        glVertex3f( 0, 5, 0);
+        glVertex3f(0, 4.5, -0.5);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex3f(0, 4.5, 0);
+        glVertex3f(0, 4.75, -0.25);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex3f(0.1, 0, 5);
+        glVertex3f(0.5, 0, 5);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex3f(0.1, 0, 4.5);
+        glVertex3f(0.5, 0, 4.5);
+    glEnd();
+    glBegin(GL_LINES);
+        glVertex3f(0.5, 0, 4.5);
+        glVertex3f(0.1, 0, 5);
+    glEnd();
+}
+
