@@ -56,7 +56,6 @@ signals:
 
 private:
     void draw();
-    void drawTexts();
 
     int xRot;
     int yRot;
