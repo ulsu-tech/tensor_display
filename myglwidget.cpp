@@ -6,9 +6,10 @@
 #include "myglwidget.h"
 
 #include <iostream>
+#include <QDebug>
 
 MyGLWidget::MyGLWidget(QWidget *parent)
-    : QGLWidget(QGLFormat(QGL::SampleBuffers), parent)
+    : QOpenGLWidget(parent)
 {
     xRot = 0;
     xRot = -60;
@@ -47,7 +48,7 @@ void MyGLWidget::setXRotation(int angle)
     if (angle != xRot) {
         xRot = angle;
         emit xRotationChanged(angle);
-        updateGL();
+        update();
     }
 }
 
@@ -57,7 +58,7 @@ void MyGLWidget::setYRotation(int angle)
     if (angle != yRot) {
         yRot = angle;
         emit yRotationChanged(angle);
-        updateGL();
+        update();
     }
 }
 
@@ -67,48 +68,97 @@ void MyGLWidget::setZRotation(int angle)
     if (angle != zRot) {
         zRot = angle;
         emit zRotationChanged(angle);
-        updateGL();
+        update();
     }
 }
 
 void MyGLWidget::initializeGL()
 {
-    qglClearColor(Qt::darkGreen);
+    initializeOpenGLFunctions();
 
+    glClearColor(0.2, 0.6, 0.1, 1);
+
+    initShaders();
+
+//! [2]
+    // Enable depth buffer
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glShadeModel(GL_SMOOTH);
-    glEnable(GL_LIGHTING);
-    glEnable(GL_LIGHT0);
 
-    static GLfloat lightPosition[4] = { 10, 10, 10, 1.0 };
-    glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
+    // Enable back face culling
+    glEnable(GL_CULL_FACE);
+//! [2]
+
+    axes = new AxesEngine;
+
+}
+
+void MyGLWidget::initShaders()
+{
+    // Compile vertex shader
+    if (!program.addShaderFromSourceFile(QOpenGLShader::Vertex, ":/vshader.glsl"))
+        close();
+
+    // Compile fragment shader
+    if (!program.addShaderFromSourceFile(QOpenGLShader::Fragment, ":/fshader.glsl"))
+        close();
+
+    // Link shader pipeline
+    if (!program.link())
+        close();
+
+    // Bind shader pipeline for use
+    if (!program.bind())
+        close();
 }
 
 void MyGLWidget::paintGL()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glLoadIdentity();
-    glTranslatef(0.0, 0.0, -20.0);
-    glRotatef(xRot, 1.0, 0.0, 0.0);
-    glRotatef(yRot, 0.0, 1.0, 0.0);
-    glRotatef(zRot, 0.0, 0.0, 1.0);
+    QMatrix4x4 matrix;
+    matrix.translate(0.0, 0.0, -10.0);
+    rotation = QQuaternion::fromEulerAngles(xRot, yRot, zRot);
+    matrix.rotate(rotation);
+
+    program.setUniformValue("mvp_matrix", projection * matrix);
+
+    QVector4D fColor( 0.4, 0.7, 0.1, 0.9);
+    program.setUniformValue("f_color", fColor);
+
+    // Draw cube geometry
+    QMatrix4x4 object_rotate;
+    object_rotate.setToIdentity(); 
+    //object_rotate.rotate(90., 0., 1.);
+    program.setUniformValue("rotate_object", object_rotate);
+    //geometries->drawGeometry(&program);
+    axes->drawGeometry(&program);
+
+    object_rotate.rotate(-90., 0., 1.);
+    program.setUniformValue("rotate_object", object_rotate);
+    fColor.setX(1.); fColor.setY(0.);
+    program.setUniformValue("f_color", fColor);
+    axes->drawGeometry(&program);
+    object_rotate.rotate(90., 0., 0., 1.);
+    program.setUniformValue("rotate_object", object_rotate);
+    fColor.setX(0.); fColor.setZ(1.);
+    program.setUniformValue("f_color", fColor);
+    axes->drawGeometry(&program);
+
     draw();
 }
 
-void MyGLWidget::resizeGL(int width, int height)
+void MyGLWidget::resizeGL(int w, int h)
 {
-    int side = qMin(width, height);
-    glViewport((width - side) / 2, (height - side) / 2, side, side);
+    qreal aspect = qreal(w) / qreal(h ? h : 1);
 
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-#ifdef QT_OPENGL_ES_1
-    glOrthof(-2, +2, -2, +2, 1.0, 15.0);
-#else
-    glOrtho(-5, +5, -5, +5, 1.0, 35.0);
-#endif
-    glMatrixMode(GL_MODELVIEW);
+    // Set near plane to 3.0, far plane to 7.0, field of view 45 degrees
+    const qreal zNear = 1.0, zFar = 17.0, fov = 45.0;
+
+    // Reset projection
+    projection.setToIdentity();
+
+    // Set perspective projection
+    projection.perspective(fov, aspect, zNear, zFar);
 }
 
 void MyGLWidget::mousePressEvent(QMouseEvent *event)
@@ -118,80 +168,48 @@ void MyGLWidget::mousePressEvent(QMouseEvent *event)
 
 void MyGLWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    return;
     int dx = event->x() - lastPos.x();
     int dy = event->y() - lastPos.y();
 
     if (event->buttons() & Qt::LeftButton) {
-        setXRotation(xRot + 8 * dy);
-        setYRotation(yRot + 8 * dx);
+        setXRotation(xRot + 1 * dy);
+        setYRotation(yRot + 1 * dx);
     } else if (event->buttons() & Qt::RightButton) {
-        setXRotation(xRot + 8 * dy);
-        setZRotation(zRot + 8 * dx);
+        setXRotation(xRot + 1 * dy);
+        setZRotation(zRot + 1 * dx);
     }
 
     lastPos = event->pos();
 }
 
-void drawLineFromZeroTo( double x, double y, double z)
+void MyGLWidget::findRotation(double &angleZ, double &angleY,const tensorVec &repCoord)
 {
-
-    glBegin(GL_LINES);
-        glVertex3f(0,0,0);
-        glVertex3f(x,y,z);
-    glEnd();
-}
-
-void drawOrth(double x, double y, double z)
-{
-    double norm = sqrt( x*x + y*y + z*z);
-    if (norm == 0) return;
-    double gamma = M_PI/2.;
-    if (x != 0) {
-       gamma = - atan( y/x);
+    if ( abs(repCoord.x) < 1e-6) {
+        angleZ = 90.;
+        if( repCoord.y < 0) {
+                angleZ = -90.;
+        }
+    } else {
+        angleZ = 180. / M_PI * atan(1. *repCoord.y/repCoord.x);
+        if (repCoord.x < 0) {
+            angleZ += 180.;
+        }
     }
-    //3-f vector is ( - z/norm * cos(gamma); - z / norm * sin(gamma); x/norm * sin(gamma) - y/norm * cos(gamma) )
-    double w = 0.01;
-    double h = 0.01;
-    glBegin(GL_TRIANGLE_STRIP);
-      glColor4s( 1., 0., 0., 1.);
-        glVertex3f(0 + sin(gamma)*w - h * ( -z/norm * cos(gamma)) ,  //1
-            0 + cos(gamma)*w - h * ( -z/norm * sin(gamma)),
-            0 + 0*w - h/norm*(x * cos(gamma) - y * sin(gamma)) );
-        glVertex3f(x + sin(gamma)*w - h * ( -z/norm * cos(gamma)) ,  //2
-            y + cos(gamma)*w - h * ( -z/norm * sin(gamma)),
-            z + 0*w - h/norm*(x * cos(gamma) - y * sin(gamma)) );
-        glVertex3f(0 + sin(gamma)*w + h * ( -z/norm * cos(gamma)) ,  //3
-            0 + cos(gamma)*w + h * ( -z/norm * sin(gamma)), 
-            0 + 0*w + h/norm*(x * cos(gamma) - y * sin(gamma)) );
-        glVertex3f(x + sin(gamma)*w + h * ( -z/norm * cos(gamma)) ,  //4
-            y + cos(gamma)*w + h * ( -z/norm * sin(gamma)),
-            z + 0*w + h/norm*(x * cos(gamma) - y * sin(gamma)) );
-        glVertex3f(0 - sin(gamma)*w + h * ( -z/norm * cos(gamma)) ,  //5
-            0 - cos(gamma)*w + h * ( -z/norm * sin(gamma)),
-            0 - 0*w + h/norm*(x * cos(gamma) - y * sin(gamma)) );
-        glVertex3f(x - sin(gamma)*w + h * ( -z/norm * cos(gamma)) ,  //6
-            y - cos(gamma)*w + h * ( -z/norm * sin(gamma)),
-            z - 0*w + h/norm*(x * cos(gamma) - y * sin(gamma)) );
-        glVertex3f(0 - sin(gamma)*w - h * ( -z/norm * cos(gamma)) ,  //7
-            0 - cos(gamma)*w - h * ( -z/norm * sin(gamma)),
-            0 - 0*w - h/norm*(x * cos(gamma) - y * sin(gamma)) );
-        glVertex3f(x - sin(gamma)*w - h * ( -z/norm * cos(gamma)) ,  //8
-            y - cos(gamma)*w - h * ( -z/norm * sin(gamma)),
-            z - 0*w - h/norm*(x * cos(gamma) - y * sin(gamma)) );
-        glVertex3f(0 + sin(gamma)*w - h * ( -z/norm * cos(gamma)) ,  //1
-            0 + cos(gamma)*w - h * ( -z/norm * sin(gamma)),
-            0 + 0*w - h/norm*(x * cos(gamma) - y * sin(gamma)) );
-        glVertex3f(x + sin(gamma)*w - h * ( -z/norm * cos(gamma)) ,  //2
-            y + cos(gamma)*w - h * ( -z/norm * sin(gamma)),
-            z + 0*w - h/norm*(x * cos(gamma) - y * sin(gamma)) );
-    glEnd();
+    if ( abs(repCoord.x) < 1e-6 && abs(repCoord.y) < 1e-6 )
+    {
+        if (repCoord.z < 0)
+            angleY = 90.;
+        else
+            angleY = -90.;
+    } else {
+        auto l_pr = sqrt(repCoord.x* repCoord.x + repCoord.y* repCoord.y);
+        angleY = 180. / M_PI * atan(1.* repCoord.z/ l_pr);
+    }
 }
 
 void MyGLWidget::draw()
 {
-    qglColor(Qt::darkRed);
-
+/*
   if (ShowPyramids) {
     glBegin(GL_TRIANGLE_STRIP);
         //glNormal3f(0,-1,0.707);
@@ -211,26 +229,39 @@ void MyGLWidget::draw()
         glVertex3f(1,0,0);
     glEnd();
   }
+*/
 
-    drawOrth(5, 0, 0);
-    drawOrth(0, 5, 0);
-    drawOrth(0, 0, 5);
-
-    drawTexts();
-
+    auto m = reportedCoords.size();
+    int i=0;
     for(auto &repCoord : reportedCoords)
     {
-        drawLineFromZeroTo(
-            scaleToSphere(repCoord.x),
-            scaleToSphere(repCoord.y),
-            scaleToSphere(repCoord.z));
+        // how to rotate there?
+        //repCoord.x, .y, .z
+        double v = 1. - 1. * i / m;
+        QVector4D fColor( v, 0.1, v, 1. - 0.9 * i / m );
+        program.setUniformValue("f_color", fColor);
+
+        QMatrix4x4 object_rotate;
+        object_rotate.setToIdentity(); 
+        // scale 1./5. * L
+        object_rotate.scale( 3./5. * sqrt( repCoord.x*repCoord.x + repCoord.y*repCoord.y + repCoord.z * repCoord.z )/ 2048. );
+        // x/y - определяют поворот вокруг z
+        double angleZ = 0, angleY = 0;
+        findRotation(angleZ, angleY, repCoord);
+        object_rotate.rotate(angleZ, 0., 0., 1.);
+        object_rotate.rotate(angleY, 0., 1.);
+        qDebug()<<"from x="<<repCoord.x<<" y="<<repCoord.y<<"   z="<<repCoord.z<<"    calced overZ="<<angleZ<<"   and overY'="<<angleY;
+
+        program.setUniformValue("rotate_object", object_rotate);
+        axes->drawGeometry(&program);
+        ++i;
     }
 }
 
 void MyGLWidget::redraw()
 {
   ///std::cout<<"redraw called"<<std::endl;
-    updateGL();
+    update();
 }
 
 void MyGLWidget::appendNewVector(int x, int y, int z)

@@ -3,19 +3,23 @@
 #ifndef MYGLWIDGET_H
 #define MYGLWIDGET_H
 
-#include <QGLWidget>
+#include <QOpenGLWidget>
 #include <vector>
+#include "axesengine.h"
+#include <QOpenGLShaderProgram>
+#include <QOpenGLFunctions>
 
 struct tensorVec {
     int x, y, z;
 };
 
-class MyGLWidget : public QGLWidget
+class MyGLWidget : public QOpenGLWidget, protected QOpenGLFunctions
 {
     Q_OBJECT
 public:
     explicit MyGLWidget(QWidget *parent = 0);
     ~MyGLWidget();
+    void findRotation(double &angleZ, double &angleY,const tensorVec &repCoord);
 signals:
 
 public slots:
@@ -33,6 +37,7 @@ protected:
     inline double scaleToSphere( int v, double rad = 3.) {
         return rad / 2048. * v;
     }
+    void initShaders();
 
 public slots:
     // slots for xyz-rotation slider
@@ -60,6 +65,10 @@ private:
     QPoint lastPos;
     std::vector<tensorVec> reportedCoords;
     bool ShowPyramids;
+    AxesEngine *axes = nullptr;
+    QOpenGLShaderProgram program;
+    QMatrix4x4 projection;
+    QQuaternion rotation;
 };
 
 #endif // MYGLWIDGET_H

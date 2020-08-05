@@ -15,9 +15,13 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         window.cpp \
+        axesengine.cpp \
     myglwidget.cpp
 
 HEADERS  += window.h \
+        axesengine.h \
     myglwidget.h
 
 FORMS    += window.ui
+
+RESOURCES += shaders.qrc
