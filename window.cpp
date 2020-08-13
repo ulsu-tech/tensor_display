@@ -8,6 +8,8 @@
 #include <math.h>
 #include <iostream>
 
+#include "custom_types.h"
+
 Window::Window(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::Window)
@@ -62,6 +64,7 @@ void generateInternalXYZ(int &x, int &y, int &z, const int & counter)
 void Window::updateThings()
 {
     int x=0 ,y=0,z=0;
+    int enc1 =0, enc2 = 0, enc3 = 0;
     bool hasData = false;
     if (serial == nullptr)
     {
@@ -80,13 +83,28 @@ void Window::updateThings()
         generateInternalXYZ(x,y,z, counter);
         hasData = true;
     } else { 
-        hasData = handleSerialPortInput(x,y,z);
+        hasData = handleSerialPortInput(x,y,z, enc1, enc2, enc3);
     }
     //TODO implement also reading of serial data. for now only will
     // push data to GL widget
-    shiftZero(x,y,z);
+    //shiftZero(x,y,z);
     //std::cout<<"emitting x="<<x<<"  y="<<y<<"  z="<<z<<std::endl;
     if (hasData) {
+        double t1 = getOffsetForTensor(enc1, enc2, enc3, 0);
+        double t2 = getOffsetForTensor(enc1, enc2, enc3, 1);
+        double t3 = getOffsetForTensor(enc1, enc2, enc3, 2);
+        t1 = x - t1;
+        t2 = y - t2;
+        t3 = z - t3;
+        cutThreshold(t1);
+        cutThreshold(t2);
+        cutThreshold(t3);
+        // TODO convert values from oblique coordinate system to "normal"
+        // for drawing
+
+        x = t1;
+        y = t2;
+        z = t3;
         emit newData(x, y, z);
     }
     emit forceRedraw();
@@ -144,16 +162,17 @@ uint16_t crc16(const char *buf, int len) {
 int checkPossibleMessage(const char *data, const int maxSize)
 {
     //for now only data_pos messages are held
-    if ( data[0] == 0x50 && maxSize >= 16)
+    if ( data[0] == 0x50 && maxSize >= sizeof(PositionalData))
     {
-        auto crc_att = crc16(data, 14);
-        if (crc_att != *(reinterpret_cast<const uint16_t*>(data +14)))
+        auto mSize =  sizeof(PositionalData) - sizeof(uint16_t);
+        auto crc_att = crc16(data, mSize);
+        if (crc_att != *(reinterpret_cast<const uint16_t*>(data +mSize)))
         {
             qDebug()<<" on CRC check received "<<crc_att<<"  VS  "<<
-                *(reinterpret_cast<const uint16_t*>(data +14));
+                *(reinterpret_cast<const uint16_t*>(data +mSize));
             return -1;
         }
-        return 16; //sizeof( DATA_POS_struct)
+        return sizeof(PositionalData); //sizeof( DATA_POS_struct)
     }
     return -1;
 }
@@ -166,7 +185,16 @@ void fillXYZfromDATA_POS_message(const char *data, int &x, int &y, int&z)
     z = tensorStart[2];
 }
 
-bool Window::handleSerialPortInput(int &x, int &y, int &z)
+void fillENCODERSfromDATA_POS_message(const char * data,
+    int &enc1, int &enc2, int &enc3)
+{
+    struct data const &received(*(reinterpret_cast<struct data const *>(data)));
+    enc1 = received.enc1;
+    enc2 = received.enc2;
+    enc3 = received.enc3;
+}
+
+bool Window::handleSerialPortInput(int &x, int &y, int &z, int &enc1, int &enc2, int &enc3)
 {
     bool rv = false;
     int temp = serial->read(serialBuffer + serialBuffFilled, 2048 - serialBuffFilled);
@@ -179,6 +207,8 @@ bool Window::handleSerialPortInput(int &x, int &y, int &z)
             auto validSize = checkPossibleMessage(serialBuffer + i, serialBuffFilled - i);
             if (validSize > 0) {
                 fillXYZfromDATA_POS_message(serialBuffer + i, x,y,z);
+                fillENCODERSfromDATA_POS_message(serialBuffer + i,
+                    enc1, enc2, enc3);
                 SHL(i + validSize);
                 rv = true;
             }
@@ -198,3 +228,36 @@ void Window::SHL(const int shift)
     serialBuffFilled -= shift;
 }
 
+double Window::getOffsetForTensor(int enc1, int enc2, int enc3, int section)
+{
+    double coeefs[COEFFS_GROUPS_COUNT][ENCODERS_COUNT][7] = {
+ {
+    // group from sheet _169
+  {  0.0042670552, -0.001177697, -0.0005183442,
+        -7.5067725e-8, 1.6e-8, -2.65646976e-8, 2441.68629
+  },
+  { 0.0033252889, -0.0004951877, -0.0016182633,
+        -3.7455457e-8, 9.63065116e-8, -4.4462e-8, 1869.2946
+  },
+  { -0.0117989483, 0.0027467499, -0.002497153,
+        9.5796589e-8, -5.25122848e-8, 7.57885e-8, 1883.3314
+  }
+ }
+    };
+
+    if (section <0 || section >= encodersCount)
+        return -1.;
+
+    int usedGroup = 0;
+
+    return coeefs[usedGroup][section][6] +
+        coeefs[usedGroup][section][0] * enc1 +
+        coeefs[usedGroup][section][1] * enc2 +
+        coeefs[usedGroup][section][2] * enc3 +
+        coeefs[usedGroup][section][3] * enc1 * enc1 +
+        coeefs[usedGroup][section][4] * enc2 * enc2 +
+        coeefs[usedGroup][section][5] * enc3 * enc3;
+}
+
+const unsigned int Window::encodersCount = 3;
+const double Window::tensorZeroThreshold = 90;
