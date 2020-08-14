@@ -61,6 +61,56 @@ void generateInternalXYZ(int &x, int &y, int &z, const int & counter)
     z = sin(2.* counter / 180. * M_PI) * l + 2048;
 }
 
+void projectUnclinedToDecart(double &t1, double &t2, double &t3)
+{
+    const double x1min = -8.0;
+    const double x1max = -8.0;
+    const double y1min = -411.19566; 
+    const double y1max = -381.38839;
+    const double z1min = 366.13891;
+    const double z1max = 706.83750;
+
+    // Left guide limits
+    const double x2min = -356.14606;
+    const double x2max = -136.04091;
+    const double y2min = 50.08337;
+    const double y2max = -198.92575;
+    const double z2min = 796.28856;
+    const double z2max = 876.98666;
+
+    // Right guide limits
+    const double x3min = 364.14606;
+    const double x3max = 144.04091;
+    const double y3min = 39.94943;
+    const double y3max = -209.05969;
+    const double z3min =  786.83851;
+    const double z3max = 867.53661;
+
+    const double x1_ = x1max - x1min;
+    const double y1_ = y1max - y1min;
+    const double z1_ = z1max - z1min;
+
+    const double x2_ = x2max - x2min;
+    const double y2_ = y2max - y2min;
+    const double z2_ = z2max - z2min;
+
+    const double x3_ = x3max - x3min;
+    const double y3_ = y3max - y3min;
+    const double z3_ = z3max - z3min;
+    double l1 = sqrt( x1_ * x1_ + y1_ * y1_ + z1_ * z1_ );
+    double l2 = sqrt( x2_ * x2_ + y2_ * y2_ + z2_ * z2_ );
+    double l3 = sqrt( x3_ * x3_ + y3_ * y3_ + z3_ * z3_ );
+
+
+    double x_real = t1 * x1_ / l1 + t2 * x2_ / l2 + t3 * x3_ / l3;
+    double y_real = t1 * y1_ / l1 + t2 * y2_ / l2 + t3 * y3_ / l3;
+    double z_real = t1 * z1_ / l1 + t2 * z2_ / l2 + t3 * z3_ / l3;
+
+    t1 = x_real;
+    t2 = y_real;
+    t3 = z_real;
+}
+
 void Window::updateThings()
 {
     int x=0 ,y=0,z=0;
@@ -101,6 +151,7 @@ void Window::updateThings()
         cutThreshold(t2);
         cutThreshold(t3);
         // TODO convert values from oblique coordinate system to "normal"
+        projectUnclinedToDecart(t1, t2, t3);
         // for drawing
         x = t1;
         y = t2;
