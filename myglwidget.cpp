@@ -202,7 +202,7 @@ void MyGLWidget::findRotation(double &angleZ, double &angleY,const tensorVec &re
             angleY = -90.;
     } else {
         auto l_pr = sqrt(repCoord.x* repCoord.x + repCoord.y* repCoord.y);
-        angleY = 180. / M_PI * atan(1.* repCoord.z/ l_pr);
+        angleY = -180. / M_PI * atan(1.* repCoord.z/ l_pr);
     }
 }
 
@@ -249,7 +249,7 @@ void MyGLWidget::draw()
         findRotation(angleZ, angleY, repCoord);
         object_rotate.rotate(angleZ, 0., 0., 1.);
         object_rotate.rotate(angleY, 0., 1.);
-        qDebug()<<"from x="<<repCoord.x<<" y="<<repCoord.y<<"   z="<<repCoord.z<<"    calced overZ="<<angleZ<<"   and overY'="<<angleY;
+        //qDebug()<<"from x="<<repCoord.x<<" y="<<repCoord.y<<"   z="<<repCoord.z<<"    calced overZ="<<angleZ<<"   and overY'="<<angleY;
 
         program.setUniformValue("rotate_object", object_rotate);
         axes->drawGeometry(&program);

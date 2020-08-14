@@ -90,21 +90,23 @@ void Window::updateThings()
     //shiftZero(x,y,z);
     //std::cout<<"emitting x="<<x<<"  y="<<y<<"  z="<<z<<std::endl;
     if (hasData) {
+
         double t1 = getOffsetForTensor(enc1, enc2, enc3, 0);
         double t2 = getOffsetForTensor(enc1, enc2, enc3, 1);
         double t3 = getOffsetForTensor(enc1, enc2, enc3, 2);
         t1 = x - t1;
         t2 = y - t2;
-        t3 = z - t3;
+        t3 =  z - t3;
         cutThreshold(t1);
         cutThreshold(t2);
         cutThreshold(t3);
         // TODO convert values from oblique coordinate system to "normal"
         // for drawing
-
         x = t1;
         y = t2;
         z = t3;
+
+//    shiftZero(x,y,z);
         emit newData(x, y, z);
     }
     emit forceRedraw();
@@ -179,10 +181,11 @@ int checkPossibleMessage(const char *data, const int maxSize)
 
 void fillXYZfromDATA_POS_message(const char *data, int &x, int &y, int&z)
 {
-    const uint16_t *tensorStart = reinterpret_cast<const uint16_t*>(data + 8);
-    x = tensorStart[0];
-    y = tensorStart[1];
-    z = tensorStart[2];
+    struct data const &received(*(reinterpret_cast<struct data const *>(data)));
+    x = received.tenzor[0];
+    y = received.tenzor[1];
+    z = received.tenzor[2];
+	qDebug()<<"after message received x="<<x<<"  y="<<y<<"   z="<<z;
 }
 
 void fillENCODERSfromDATA_POS_message(const char * data,
@@ -260,4 +263,4 @@ double Window::getOffsetForTensor(int enc1, int enc2, int enc3, int section)
 }
 
 const unsigned int Window::encodersCount = 3;
-const double Window::tensorZeroThreshold = 90;
+const double Window::tensorZeroThreshold = 150;
